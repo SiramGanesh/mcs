@@ -231,6 +231,29 @@ const ComplaintDetails = () => {
                 </div>
               </div>
             )}
+
+            {/* User Actions (Creator only) */}
+            {user && complaint.userId && user._id === complaint.userId._id && complaint.status !== 'Resolved' && (
+              <div className="bg-white p-4 rounded-md border border-red-200 mt-6">
+                <h3 className="font-semibold mb-3 text-red-600">⚠️ Danger Zone</h3>
+                <button
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors w-full"
+                  onClick={async () => {
+                    if (window.confirm('Are you sure you want to delete this complaint? This action cannot be undone.')) {
+                      try {
+                        await api.delete(`/complaints/${complaint._id}`);
+                        navigate(-1);
+                      } catch (error) {
+                        console.error('Error deleting complaint:', error);
+                        alert(error.response?.data?.message || 'Error deleting complaint');
+                      }
+                    }
+                  }}
+                >
+                  Delete Complaint
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -226,10 +226,46 @@ const updateComplaintStatus = async (req, res) => {
   }
 };
 
+// ============================================
+// @desc    Delete single complaint by ID
+// @route   DELETE /api/complaints/:id
+// @access  Private (Creator or admin)
+// ============================================
+const deleteComplaint = async (req, res) => {
+  try {
+    const complaint = await Complaint.findById(req.params.id);
+
+    if (!complaint) {
+      return res.status(404).json({ message: 'Complaint not found' });
+    }
+
+    // Check if the user is the creator (or admin)
+    if (complaint.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to delete this complaint' });
+    }
+
+    // Prevent deletion if the complaint is resolved
+    if (complaint.status === 'Resolved') {
+      return res.status(400).json({ message: 'Cannot delete a resolved complaint' });
+    }
+
+    await Complaint.findByIdAndDelete(req.params.id);
+
+    // Also delete related SLA if it exists
+    await SLA.findOneAndDelete({ complaintId: req.params.id });
+
+    res.json({ success: true, message: 'Complaint deleted successfully' });
+  } catch (error) {
+    console.error('Delete complaint error:', error.message);
+    res.status(500).json({ message: 'Error deleting complaint' });
+  }
+};
+
 module.exports = {
   createComplaint,
   getComplaints,
   getMyComplaints,
   getComplaintById,
   updateComplaintStatus,
+  deleteComplaint,
 };

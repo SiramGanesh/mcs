@@ -159,35 +159,42 @@ const createUser = async (req, res) => {
     const { name, email, password, role, department } = req.body;
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User already exists with this email' });
+    let user = await User.findOne({ email });
+    let isNewUser = false;
+
+    if (user) {
+      user.role = role || user.role;
+      if (role === 'officer' && department) {
+        user.department = department;
+      }
+      await user.save();
+    } else {
+      isNewUser = true;
+      const userData = {
+        name,
+        email,
+        password,
+        role: role || 'citizen',
+      };
+
+      if (role === 'officer' && department) {
+        userData.department = department;
+      }
+
+      // Create user
+      user = await User.create(userData);
     }
-
-    const userData = {
-      name,
-      email,
-      password,
-      role: role || 'citizen',
-    };
-
-    if (role === 'officer' && department) {
-      userData.department = department;
-    }
-
-    // Create user
-    const user = await User.create(userData);
 
     // If role is officer, add user to department's assignedOfficers
     if (role === 'officer' && department) {
       await Department.findByIdAndUpdate(department, {
-        $push: { assignedOfficers: user._id }
+        $addToSet: { assignedOfficers: user._id }
       });
     }
 
-    res.status(201).json({
+    res.status(isNewUser ? 201 : 200).json({
       success: true,
-      message: `${role} account created successfully`,
+      message: isNewUser ? `${role} account created successfully` : `User role updated to ${role} successfully`,
       user: {
         id: user._id,
         name: user.name,

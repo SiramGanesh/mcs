@@ -15,6 +15,7 @@ const {
   getMyComplaints,
   getComplaintById,
   updateComplaintStatus,
+  deleteComplaint,
 } = require('../controllers/complaintController');
 const { protect, authorize } = require('../middleware/auth');
 const upload = require('../middleware/upload');
@@ -38,5 +39,8 @@ router.get('/:id', getComplaintById);
 
 // PUT /api/complaints/:id/status - Update status (officer/admin)
 router.put('/:id/status', authorize('officer', 'admin'), updateComplaintStatus);
+
+// DELETE /api/complaints/:id - Delete single complaint
+router.delete('/:id', deleteComplaint);
 
 module.exports = router;
