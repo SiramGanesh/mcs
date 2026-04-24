@@ -178,10 +178,10 @@ const getComplaintById = async (req, res) => {
 // ============================================
 const updateComplaintStatus = async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, rejectionReason } = req.body;
 
     // Validate status value
-    const validStatuses = ['Registered', 'In Progress', 'Resolved', 'Escalated'];
+    const validStatuses = ['Registered', 'In Progress', 'Resolved', 'Escalated', 'Rejected'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
@@ -192,6 +192,16 @@ const updateComplaintStatus = async (req, res) => {
     const complaint = await Complaint.findById(req.params.id);
     if (!complaint) {
       return res.status(404).json({ message: 'Complaint not found' });
+    }
+
+    if (status === 'Rejected') {
+      if (!rejectionReason || rejectionReason.trim() === '') {
+        return res.status(400).json({ message: 'Rejection reason is required when rejecting a complaint' });
+      }
+      complaint.rejectionReason = rejectionReason;
+    } else {
+      // Clear rejection reason if status is changed from Rejected to something else
+      complaint.rejectionReason = null;
     }
 
     complaint.status = status;
@@ -208,10 +218,15 @@ const updateComplaintStatus = async (req, res) => {
       }
     }
 
+    let notificationMessage = `Your complaint "${complaint.title}" status has been updated to "${status}".`;
+    if (status === 'Rejected') {
+      notificationMessage = `Your complaint "${complaint.title}" has been rejected. Reason: ${rejectionReason}`;
+    }
+
     // Send notification to the citizen about status change
     await Notification.create({
       userId: complaint.userId,
-      message: `Your complaint "${complaint.title}" status has been updated to "${status}".`,
+      message: notificationMessage,
       type: 'system',
       complaintId: complaint._id,
     });

@@ -15,8 +15,7 @@ import axios from 'axios';
 
 // Create an Axios instance with default settings
 const api = axios.create({
-  // Use relative path in production (Vercel routes /api to backend), otherwise localhost for dev
-  baseURL: process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:5000/api', 
+  baseURL: 'http://localhost:5000/api', // Backend API base URL
   headers: {
     'Content-Type': 'application/json',
   },

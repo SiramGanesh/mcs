@@ -42,10 +42,13 @@ const ComplaintDetails = () => {
   }, [id]);
 
   // Update complaint status (officer/admin only)
-  const handleStatusUpdate = async (newStatus) => {
+  const handleStatusUpdate = async (newStatus, reason = null) => {
     setUpdating(true);
     try {
-      await api.put(`/complaints/${id}/status`, { status: newStatus });
+      const payload = { status: newStatus };
+      if (reason) payload.rejectionReason = reason;
+
+      await api.put(`/complaints/${id}/status`, payload);
       // Refresh the complaint data
       const response = await api.get(`/complaints/${id}`);
       setComplaint(response.data.complaint);
@@ -55,6 +58,17 @@ const ComplaintDetails = () => {
     } finally {
       setUpdating(false);
     }
+  };
+
+  // Handle reject action
+  const handleReject = () => {
+    const reason = window.prompt("Please provide a reason for rejecting this complaint:");
+    if (reason === null) return; // User cancelled prompt
+    if (reason.trim() === '') {
+      alert("A rejection reason is required.");
+      return;
+    }
+    handleStatusUpdate('Rejected', reason);
   };
 
   // Format date nicely
@@ -144,6 +158,13 @@ const ComplaintDetails = () => {
               </p>
             </div>
 
+            {complaint.status === 'Rejected' && complaint.rejectionReason && (
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">❌ Rejection Reason</h3>
+                <p className="text-red-700 font-medium bg-red-50 p-4 rounded-xl border border-red-100">{complaint.rejectionReason}</p>
+              </div>
+            )}
+
             {complaint.userId && (
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">👤 Filed By</h3>
@@ -219,13 +240,22 @@ const ComplaintDetails = () => {
                       Mark In Progress
                     </button>
                   )}
-                  {complaint.status !== 'Resolved' && (
+                  {complaint.status !== 'Resolved' && complaint.status !== 'Rejected' && (
                     <button
-                      className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="bg-brand-600 text-white px-4 py-2 rounded-md hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={() => handleStatusUpdate('Resolved')}
                       disabled={updating}
                     >
                       Mark Resolved
+                    </button>
+                  )}
+                  {complaint.status !== 'Rejected' && complaint.status !== 'Resolved' && (
+                    <button
+                      className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-md hover:bg-red-100 hover:border-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={handleReject}
+                      disabled={updating}
+                    >
+                      Reject Complaint
                     </button>
                   )}
                 </div>
